@@ -5,19 +5,67 @@ import { LAMPORTS_PER_SOL, PublicKey, Transaction, SystemProgram } from '@solana
 
 const WalletComponent = () => {
   const { connection } = useConnection();
-  const { publicKey, sendTransaction } = useWallet();
+  const { publicKey, sendTransaction, wallet } = useWallet();  // Add wallet here
   const [balance, setBalance] = useState(0);
   const [recipient, setRecipient] = useState('');
   const [amount, setAmount] = useState('');
   const [loading, setLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [showSuccess, setShowSuccess] = useState(false);
+  const [recentTransactions, setRecentTransactions] = useState([]);
 
-  useEffect(() => {
-    if (publicKey) {
-      getBalance();
+  const getRecentTransactions = async () => {
+    if (!publicKey) return;
+    try {
+      const signatures = await connection.getSignaturesForAddress(
+        publicKey,
+        { limit: 5 },
+        'confirmed'
+      );
+
+      // In getRecentTransactions function, modify the transaction details mapping
+      const transactionDetails = await Promise.all(
+        signatures.map(async (sig) => {
+          const tx = await connection.getTransaction(sig.signature, {
+            maxSupportedTransactionVersion: 0,
+          });
+          const isReceived = tx?.transaction?.message?.accountKeys[0]?.toBase58() !== publicKey.toString();
+          return {
+            signature: sig.signature,
+            timestamp: new Date(sig.blockTime * 1000).toLocaleString(),
+            amount: tx?.meta?.postBalances[0] 
+              ? (tx.meta.preBalances[0] - tx.meta.postBalances[0]) / LAMPORTS_PER_SOL
+              : 0,
+            address: isReceived 
+              ? tx?.transaction?.message?.accountKeys[0]?.toBase58() || 'Unknown'
+              : tx?.transaction?.message?.accountKeys[1]?.toBase58() || 'Unknown',
+            isReceived,
+            status: sig.confirmationStatus
+          };
+        })
+      );
+
+      setRecentTransactions(transactionDetails);
+    } catch (error) {
+      console.error('Error fetching transactions:', error);
     }
-  }, [publicKey, connection]);
+  };
+
+  // Add wallet to dependency array
+  useEffect(() => {
+    const fetchData = async () => {
+      if (publicKey) {
+        await Promise.all([
+          getBalance(),
+          getRecentTransactions()
+        ]);
+      } else {
+        setRecentTransactions([]); // Clear transactions when wallet disconnects
+      }
+    };
+
+    fetchData();
+  }, [publicKey, connection]); // Remove wallet from dependencies as it's not needed
 
   const getBalance = async () => {
     try {
@@ -100,8 +148,18 @@ const WalletComponent = () => {
         console.log('Transaction confirmed successfully');
         setSuccessMessage(`Transaction successful! Signature: ${signature}`);
         setShowSuccess(true);
-        setTimeout(() => setShowSuccess(false), 5000); // Hide after 5 seconds
+        setTimeout(() => setShowSuccess(false), 5000);
         await getBalance();
+        await getRecentTransactions(); // This will update the transaction list
+
+        // Remove these lines
+        // const newTransaction = {
+        //   signature,
+        //   recipient: recipientPubKey.toString(),
+        //   amount,
+        //   timestamp: new Date().toLocaleString()
+        // };
+        // setTransactions(prev => [newTransaction, ...prev].slice(0, 5));
 
       } catch (txError) {
         console.log('Transaction processing error:', txError);
@@ -199,6 +257,49 @@ const WalletComponent = () => {
               )}
             </button>
           </form>
+
+          {/* Add Recent Transactions List */}
+          {recentTransactions.length > 0 && (
+            <div className="mt-8 space-y-4">
+              <h3 className="text-lg font-medium text-purple-300">Recent Transactions</h3>
+              <div className="space-y-3">
+                {recentTransactions.map((tx) => (
+                  <div key={tx.signature} className="bg-gray-700/50 rounded-lg p-4 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-400">Amount</span>
+                      <span className="font-medium text-purple-300">{Math.abs(tx.amount)} SOL</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-400">{tx.isReceived ? 'From' : 'To'}</span>
+                      <span className="font-mono text-xs text-gray-300 truncate max-w-[200px]">
+                        {tx.address}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-400">Time</span>
+                      <span className="text-xs text-gray-300">{tx.timestamp}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-400">Status</span>
+                      <span className={`text-xs ${
+                        tx.status === 'confirmed' ? 'text-green-400' : 'text-yellow-400'
+                      }`}>
+                        {tx.status}
+                      </span>
+                    </div>
+                    <a
+                      href={`https://explorer.solana.com/tx/${tx.signature}?cluster=devnet`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-purple-400 hover:text-purple-300 transition-colors"
+                    >
+                      View on Explorer →
+                    </a>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
