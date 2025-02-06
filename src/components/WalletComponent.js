@@ -13,6 +13,13 @@ const WalletComponent = () => {
   const [successMessage, setSuccessMessage] = useState('');
   const [showSuccess, setShowSuccess] = useState(false);
   const [recentTransactions, setRecentTransactions] = useState([]);
+  const [showCopied, setShowCopied] = useState(false);  // Add this state
+
+  const copyAddress = async () => {  // Add this function
+    await navigator.clipboard.writeText(publicKey.toString());
+    setShowCopied(true);
+    setTimeout(() => setShowCopied(false), 2000);
+  };
 
   const getRecentTransactions = async () => {
     if (!publicKey) return;
@@ -207,7 +214,27 @@ const WalletComponent = () => {
         <div className="w-full space-y-6">
           <div className="space-y-2">
             <h3 className="text-sm text-gray-400">Your wallet address:</h3>
-            <p className="font-mono text-sm break-all bg-gray-700 p-3 rounded">{publicKey.toString()}</p>
+            <div className="relative group">
+              <div 
+                onClick={copyAddress}
+                className="font-mono text-sm break-all bg-gray-700 p-3 rounded cursor-pointer hover:bg-gray-600/50 transition-colors flex items-center justify-between"
+              >
+                <span>{publicKey.toString()}</span>
+                <svg 
+                  className="w-5 h-5 text-gray-400 group-hover:text-purple-400 transition-colors" 
+                  fill="none" 
+                  viewBox="0 0 24 24" 
+                  stroke="currentColor"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+              </div>
+              {showCopied && (
+                <div className="absolute top-0 right-0 -mt-8 bg-green-500 text-white text-sm px-2 py-1 rounded shadow-lg animate-fade-in-down">
+                  Copied!
+                </div>
+              )}
+            </div>
           </div>
           
           <div className="space-y-2">
@@ -266,7 +293,16 @@ const WalletComponent = () => {
                 {recentTransactions.map((tx) => (
                   <div key={tx.signature} className="bg-gray-700/50 rounded-lg p-4 space-y-2">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-400">Amount</span>
+                      <div className="flex items-center space-x-2">
+                        <span className="text-sm text-gray-400">Amount</span>
+                        <span className={`text-xs px-2 py-0.5 rounded-full ${
+                          tx.isReceived 
+                            ? 'bg-green-500/20 text-green-400'
+                            : 'bg-orange-500/20 text-orange-400'
+                        }`}>
+                          {tx.isReceived ? 'INCOMING' : 'OUT'}
+                        </span>
+                      </div>
                       <span className="font-medium text-purple-300">{Math.abs(tx.amount)} SOL</span>
                     </div>
                     <div className="flex items-center justify-between">

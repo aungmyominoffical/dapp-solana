@@ -43,16 +43,27 @@ module.exports = {
             transform: 'scale(1)',
             opacity: '1'
           }
+        },
+        'fade-in-down': {
+          '0%': {
+            opacity: '0',
+            transform: 'translateY(-10px)'
+          },
+          '100%': {
+            opacity: '1',
+            transform: 'translateY(0)'
+          }
         }
       },
       animation: {
         'slide-in': 'slide-in 5s ease-in-out forwards',
-        'bounce-in': 'bounce-in 0.5s ease-out forwards'
+        'bounce-in': 'bounce-in 0.5s ease-out forwards',
+        'fade-in-down': 'fade-in-down 0.3s ease-out'
       },
       backdropBlur: {
         xs: '2px'
       }
-    },
+    }
   },
   plugins: [],
 }
