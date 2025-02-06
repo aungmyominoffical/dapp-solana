@@ -302,6 +302,25 @@ const WalletComponent = () => {
           )}
         </div>
       )}
+      
+      {/* Add footer */}
+      <div className="mt-12 pb-6 text-center">
+        <div className="flex items-center justify-center space-x-2">
+          <span className="text-gray-500">Created with</span>
+          <svg className="w-5 h-5 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
+          </svg>
+          <span className="text-gray-500">by</span>
+          <a
+            href="https://github.com/aungmyominoffical/dapp-solana"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-medium bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent hover:from-purple-500 hover:to-pink-600 transition-all duration-300"
+          >
+            Aung Myo Min
+          </a>
+        </div>
+      </div>
     </div>
   );
 };
